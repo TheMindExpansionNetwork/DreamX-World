@@ -19,7 +19,7 @@ DreamX Team
 
 **DreamX-World** is a general-purpose world model for **interactive world simulation**. It generates diverse, high-fidelity worlds that users can explore, control, and transform with event prompts.
 
-The model is trained with a scalable data engine on Unreal Engine data, gameplay footage, and real-world videos, combined with camera estimation and strict data filtering to learn realistic dynamics and interactions. It follows a progressive training pipeline: learning fine-grained action control first, then open-ended event response, and finally using Reinforcement Learning to improve action following, interaction consistency, and visual fidelity.
+The model is trained with a scalable data engine on Unreal Engine data, gameplay footage, and real-world videos, combined with camera estimation and strict data filtering to learn realistic dynamics and interactions. It follows a progressive training pipeline: learning fine-grained action control first, then open-ended event response, and using Reinforcement Learning to improve action following, interaction consistency, and visual fidelity. Finally, through forcing and distillation, DreamX-World achieves efficient inference, making interactive generation practical at scale.
 
 ## 🎬 Video Demo
 <div align="center">
