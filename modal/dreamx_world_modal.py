@@ -47,6 +47,7 @@ hf_cache = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 dreamx_cache = modal.Volume.from_name("dreamx-world-cache", create_if_missing=True)
 dreamx_outputs = modal.Volume.from_name("dreamx-world-outputs", create_if_missing=True)
 hf_secret = modal.Secret.from_name("huggingface-secret")
+app = modal.App(APP_NAME)
 
 # Build notes:
 # - CUDA 12.4 wheels match torch 2.5.1.
