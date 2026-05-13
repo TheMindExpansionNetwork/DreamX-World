@@ -92,6 +92,7 @@ image = (
         "huggingface_hub>=0.24.0",
         "hf_transfer",
     )
+    .pip_install("wheel", "setuptools", "packaging")
     .run_commands("python -m pip install flash_attn==2.8.3 --no-build-isolation")
 )
 
