@@ -284,7 +284,16 @@ def run_three_samples(
     ]
     _run(cmd, cwd=REPO_DIR, env={"HF_HOME": f"{CACHE_ROOT}/hf", "PYTHONUNBUFFERED": "1"})
 
-    produced = sorted(str(p) for p in pathlib.Path(out_dir).glob("*.mp4"))
+    produced_all = sorted(str(p) for p in pathlib.Path(out_dir).glob("*.mp4"))
+    produced = []
+    for item in THREE_SAMPLE_ITEMS:
+        image_name = pathlib.Path(item["image_path"]).stem
+        action_name = "_".join(item.get("action_seq") or ["default"])
+        expected = pathlib.Path(out_dir) / f"{image_name}_{action_name}.mp4"
+        if expected.exists():
+            produced.append(str(expected))
+    # Keep any extra outputs in the manifest, but build the comparison grid in scenario order.
+    produced.extend([p for p in produced_all if p not in produced])
     grid_path = f"{out_dir}/dreamx_three_environment_grid_silent.mp4"
     if len(produced) >= 3:
         _concat_grid(produced[:3], grid_path)
