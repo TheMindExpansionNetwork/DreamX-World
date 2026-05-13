@@ -135,13 +135,11 @@ def _hf_download(repo_id: str, local_dir: str) -> None:
     pathlib.Path(local_dir).mkdir(parents=True, exist_ok=True)
     _run(
         [
-            "huggingface-cli",
+            "hf",
             "download",
             repo_id,
             "--local-dir",
             local_dir,
-            "--local-dir-use-symlinks",
-            "False",
         ],
         env={"HF_HOME": f"{CACHE_ROOT}/hf", "HF_HUB_ENABLE_HF_TRANSFER": "1"},
     )
