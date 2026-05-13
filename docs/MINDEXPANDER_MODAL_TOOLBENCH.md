@@ -54,6 +54,11 @@ modal run modal/dreamx_world_modal.py --action run-three --smoke true
 
 # Higher-quality sample pass once smoke is good.
 modal run modal/dreamx_world_modal.py --action run-three --smoke false --frames 81 --steps 30 --height 704 --width 1280 --fps 16
+
+# One slower Minecraft-style world test. Native DreamX output is bounded at short clips;
+# post-process the 121-frame / 16 fps output to ~60s locally for review.
+modal run modal/dreamx_world_modal.py::run_single_minecraft_slow \
+  --frames 121 --steps 16 --height 384 --width 672 --fps 16 --action-speed 2
 ```
 
 ## Three environment smoke pack

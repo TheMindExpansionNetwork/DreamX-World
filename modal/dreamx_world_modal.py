@@ -200,6 +200,26 @@ def _write_three_sample_json(path: str) -> None:
     pathlib.Path(path).write_text(json.dumps(THREE_SAMPLE_ITEMS, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _write_single_minecraft_json(path: str, action_speed: int) -> dict:
+    """Write one slow Minecraft-style world-model test item."""
+    item = {
+        "sample_id": "minecraft_coast_slow_long",
+        "image_path": "./demo/007.jpg",
+        "caption": (
+            "Style: Minecraft. A peaceful blocky cliffside above a warm sunset ocean, "
+            "with grassy terrain, yellow flowers, sparse blocky trees, red soil, pixelated clouds, "
+            "and a slow calm first-person forward exploration. The motion should feel like a gentle "
+            "walkthrough, not a fast flythrough. Keep the horizon, cliff edge, flowers, trees, and ocean "
+            "spatially coherent while moving forward through the playable world."
+        ),
+        "action_seq": ["w"],
+        "action_speed_list": [action_speed],
+    }
+    pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
+    pathlib.Path(path).write_text(json.dumps([item], ensure_ascii=False, indent=2), encoding="utf-8")
+    return item
+
+
 def _concat_grid(videos: Iterable[str], out_path: str) -> None:
     videos = list(videos)
     if len(videos) != 3:
@@ -314,11 +334,112 @@ def run_three_samples(
     return manifest
 
 
+@app.function(
+    image=image,
+    gpu="H100",
+    volumes={CACHE_ROOT: dreamx_cache, OUTPUT_ROOT: dreamx_outputs, "/hf-cache": hf_cache},
+    secrets=[hf_secret],
+    timeout=10 * 60 * 60,
+    startup_timeout=60 * 60,
+)
+def run_single_minecraft_slow(
+    frames: int = 121,
+    steps: int = 16,
+    height: int = 384,
+    width: int = 672,
+    fps: int = 16,
+    seed: int = 2046,
+    action_speed: int = 2,
+) -> dict:
+    """Run one longer, slower Minecraft DreamX-World sample.
+
+    DreamX-World-5B-Cam currently documents short clips; at 121 frames and 16 fps,
+    the native output is about 7.5 seconds. A local post-process can slow that to
+    about one minute for review without spending more GPU time.
+    """
+    started = time.time()
+    _clone_or_update_repo()
+    if not pathlib.Path(BASE_MODEL_DIR).exists() or not any(pathlib.Path(BASE_MODEL_DIR).iterdir()):
+        _hf_download(BASE_MODEL_REPO, BASE_MODEL_DIR)
+    if not pathlib.Path(DREAMX_MODEL_DIR).exists() or not any(pathlib.Path(DREAMX_MODEL_DIR).iterdir()):
+        _hf_download(DREAMX_MODEL_REPO, DREAMX_MODEL_DIR)
+
+    # The open DreamX-World inference docs support short clips. Keep this bounded.
+    frames = min(frames, 121)
+    steps = min(steps, 24)
+    height = min(height, 512)
+    width = min(width, 896)
+    action_speed = max(1, min(action_speed, 6))
+
+    run_slug = f"dreamx_minecraft_slow_{int(time.time())}_f{frames}_s{steps}"
+    out_dir = f"{OUTPUT_ROOT}/{run_slug}"
+    input_json = f"{REPO_DIR}/configs/dreamx/mindexpander_minecraft_slow.json"
+    item = _write_single_minecraft_json(input_json, action_speed=action_speed)
+
+    cmd = [
+        "python", "inference_dreamx5b.py",
+        "--config_path", "configs/wan2.2/wan_ti2v_5b.yaml",
+        "--model_name", BASE_MODEL_DIR,
+        "--transformer_path", DREAMX_MODEL_DIR,
+        "--input_dir", input_json,
+        "--output_dir", out_dir,
+        "--cam_method", "prope",
+        "--add_control_adapter",
+        "--sample_size", str(height), str(width),
+        "--video_length", str(frames),
+        "--fps", str(fps),
+        "--guidance_scale", "3.0",
+        "--num_inference_steps", str(steps),
+        "--seed", str(seed),
+        "--weight_dtype", "bfloat16",
+        "--ulysses_degree", "1",
+        "--ring_degree", "1",
+        "--GPU_memory_mode", "model_cpu_offload_and_qfloat8",
+    ]
+    _run(cmd, cwd=REPO_DIR, env={"HF_HOME": f"{CACHE_ROOT}/hf", "PYTHONUNBUFFERED": "1"})
+
+    produced = sorted(str(p) for p in pathlib.Path(out_dir).glob("*.mp4"))
+    manifest = {
+        "ok": True,
+        "status": "single_minecraft_slow_complete",
+        "run_slug": run_slug,
+        "output_dir": out_dir,
+        "outputs": produced,
+        "item": item,
+        "params": {
+            "frames": frames,
+            "steps": steps,
+            "height": height,
+            "width": width,
+            "fps": fps,
+            "seed": seed,
+            "action_speed": action_speed,
+            "native_seconds_estimate": round(frames / fps, 3),
+        },
+        "elapsed_seconds": round(time.time() - started, 2),
+    }
+    pathlib.Path(out_dir, "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    dreamx_outputs.commit()
+    dreamx_cache.commit()
+    return manifest
+
+
 @app.local_entrypoint()
-def main(action: str = "precache", smoke: bool = True, frames: int = 33, steps: int = 12, height: int = 384, width: int = 672, fps: int = 16):
+def main(
+    action: str = "precache",
+    smoke: bool = True,
+    frames: int = 33,
+    steps: int = 12,
+    height: int = 384,
+    width: int = 672,
+    fps: int = 16,
+    action_speed: int = 2,
+):
     if action == "precache":
         print(json.dumps(precache.remote(), indent=2))
     elif action == "run-three":
         print(json.dumps(run_three_samples.remote(smoke=smoke, frames=frames, steps=steps, height=height, width=width, fps=fps), indent=2))
+    elif action == "run-minecraft-slow":
+        print(json.dumps(run_single_minecraft_slow.remote(frames=frames, steps=steps, height=height, width=width, fps=fps, action_speed=action_speed), indent=2))
     else:
         raise SystemExit(f"unknown action: {action}")
