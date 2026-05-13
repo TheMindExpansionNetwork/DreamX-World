@@ -19,6 +19,8 @@ DreamX Team
 
 -----
 
+> **MindExpander fork note:** this fork tracks `AMAP-ML/DreamX-World` via an `upstream` remote and adds a cache-backed Modal toolbench for bounded smoke tests. See [`docs/MINDEXPANDER_MODAL_TOOLBENCH.md`](docs/MINDEXPANDER_MODAL_TOOLBENCH.md).
+
 **DreamX-World** is a general-purpose world model for **interactive world simulation**. It generates diverse, high-fidelity worlds that users can explore, control, and transform with event prompts.
 
 The model is trained with a scalable data engine on Unreal Engine data, gameplay footage, and real-world videos, combined with camera estimation and strict data filtering to learn realistic dynamics and interactions. It follows a progressive training pipeline: learning fine-grained action control first, then open-ended event response, and using Reinforcement Learning to improve action following, interaction consistency, and visual fidelity. Finally, through forcing and distillation, DreamX-World achieves efficient inference, making interactive generation practical at scale.
